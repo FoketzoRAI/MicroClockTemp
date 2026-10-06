@@ -1,0 +1,47 @@
+
+Temperature, RTC, and OLED host tests
+====================================
+
+Run from the project root:
+
+	pio test -e native -f test_ds18b20_monitor
+
+In VS Code, use PlatformIO > Project Tasks > native > Advanced > Test.
+The suite uses Unity and mock Arduino/OneWire/DallasTemperature/Wire/U8x8/U8g2/
+ThreeWire/RtcDS1302 headers.
+It runs on the PC and does not upload firmware or access a serial port.
+test_main.cpp includes src/main.cpp, so test_build_src must remain disabled
+to avoid compiling the firmware twice or using the real hardware libraries.
+
+GCC and G++ must be on PATH. On this Windows machine, the installed MSYS2
+UCRT64 toolchain is in C:\msys64\ucrt64\bin. No project-specific toolchain
+script is required. The native -static flag avoids runtime DLL lookup problems
+on Windows; other host toolchains may need different flags.
+
+If IntelliSense reports missing C++ standard headers in the mocks while tests
+pass, select the native PlatformIO environment and rebuild its IntelliSense
+index. The Nano/AVR configuration is for firmware, not these host-only headers.
+Do not edit PlatformIO's auto-generated c_cpp_properties.json by hand.
+
+Coverage includes valid/invalid temperatures and min/max, conversion timing,
+formatting boundaries, display absence and address fallback, I2C data NACKs,
+short writes and timeouts, unchanged-frame suppression, bounded recovery, cache
+reset, and 32-bit timer rollover. RTC coverage includes saved-time preservation,
+charging disabled for CR2032, write protection, calendar boundaries and invalid
+dates, bounded serial time-setting commands, write read-back, and clock operation
+during sensor faults. UI bounds use approximate mock font widths, not real glyphs.
+Button coverage includes debouncing, short/long SET actions, once-per-press
+adjustments, field cycling and calendar clamping, safe save and failed-save state,
+serial conflicts, cancel timeout, OLED loss, and timer rollover. Integration
+tests check short presses are handled during asynchronous conversion, recovery
+is deferred while editing, and field selection redraws immediately. The sensor
+mock counts reads so early reads before the 750 ms conversion delay are detected.
+The mock I2C driver intentionally mirrors U8x8's
+unchecked endTransmission behavior so the checked project callback is exercised.
+
+Build real firmware separately:
+
+	pio run -e nanoatmega328
+
+The Nano environment excludes this desktop-only test suite. Passing mock
+tests does not verify physical wiring, sensor accuracy, or device operation.
